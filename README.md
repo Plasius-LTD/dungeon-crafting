@@ -25,6 +25,8 @@ npm install @plasius/dungeon-crafting
 - DIS-gated access state
 - chaos-hotspot severity metadata
 - dungeon-crafting intent state
+- portable authority-host descriptors
+- recoverable failure-policy and authority-response contracts
 
 ## Demo
 
@@ -36,7 +38,11 @@ node demo/example.mjs
 ## Usage
 
 ```ts
-import { createDungeonCraftingAccessState } from "@plasius/dungeon-crafting";
+import {
+  createAuthorityFailurePolicy,
+  createDungeonAuthorityBoundaryResponse,
+  createDungeonCraftingAccessState,
+} from "@plasius/dungeon-crafting";
 
 const state = createDungeonCraftingAccessState({
   divineAuthorityTier: "seat",
@@ -45,6 +51,31 @@ const state = createDungeonCraftingAccessState({
 });
 
 console.log(state.hotspotSeverity);
+
+const failurePolicy = createAuthorityFailurePolicy({
+  timeoutMs: 1800,
+  maxAttempts: 2,
+  recoverableHotspotSeverities: ["minor", "major"],
+  escalationTarget: "divine-seat",
+});
+
+const response = createDungeonAuthorityBoundaryResponse({
+  responseId: "response-1",
+  divineAuthorityTier: state.divineAuthorityTier,
+  hotspotSeverity: state.hotspotSeverity,
+  outcome: "deferred",
+  eligible: state.eligible,
+  sourceHost: {
+    hostId: "seal-authority",
+    runtime: "worker",
+    transport: "queue",
+    capabilityFlags: ["trace-linked"],
+  },
+  failurePolicy,
+  observedAt: new Date().toISOString(),
+});
+
+console.log(response.outcome);
 ```
 
 ## Governance
