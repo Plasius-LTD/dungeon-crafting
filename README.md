@@ -26,6 +26,8 @@ npm install @plasius/dungeon-crafting
 - chaos-hotspot severity metadata
 - dungeon-crafting intent state
 - privacy-safe seal-directive payloads and hotspot throughput assumptions
+- portable authority-host descriptors
+- recoverable failure-policy and authority-response contracts
 
 ## Demo
 
@@ -38,6 +40,8 @@ node demo/example.mjs
 
 ```ts
 import {
+  createAuthorityFailurePolicy,
+  createDungeonAuthorityBoundaryResponse,
   createDungeonCraftingAccessState,
   createDungeonSealDirectiveRecord,
   defaultDungeonCraftingThroughputAssumptions,
@@ -61,6 +65,31 @@ const directive = createDungeonSealDirectiveRecord({
 console.log(dungeonCraftingPrivacyScaleRollout.featureFlagId);
 console.log(defaultDungeonCraftingThroughputAssumptions.maxDirectiveCommitsPerMinute);
 console.log(directive.hotspotId);
+
+const failurePolicy = createAuthorityFailurePolicy({
+  timeoutMs: 1800,
+  maxAttempts: 2,
+  recoverableHotspotSeverities: ["minor", "major"],
+  escalationTarget: "divine-seat",
+});
+
+const response = createDungeonAuthorityBoundaryResponse({
+  responseId: "response-1",
+  divineAuthorityTier: state.divineAuthorityTier,
+  hotspotSeverity: state.hotspotSeverity,
+  outcome: "deferred",
+  eligible: state.eligible,
+  sourceHost: {
+    hostId: "seal-authority",
+    runtime: "worker",
+    transport: "queue",
+    capabilityFlags: ["trace-linked"],
+  },
+  failurePolicy,
+  observedAt: new Date().toISOString(),
+});
+
+console.log(response.outcome);
 ```
 
 ## Privacy And Scale Baseline

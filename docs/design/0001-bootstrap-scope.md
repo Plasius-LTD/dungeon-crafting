@@ -8,6 +8,8 @@ Provide a package-standard bootstrap for dungeon-crafting authority.
 
 - package descriptor and feature-flag metadata
 - dungeon-crafting access-state contract
+- portable authority-host contract
+- recoverable failure-policy and authority-response contracts
 - access-state helper
 - demo and test scaffolding
 

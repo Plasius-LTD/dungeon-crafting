@@ -1,15 +1,18 @@
 import {
   DUNGEON_CRAFTING_FEATURE_FLAG_ID,
+  DUNGEON_CRAFTING_PRIVACY_SCALE_FEATURE_FLAG_ID,
+  createAuthorityFailurePolicy,
+  createDungeonAuthorityBoundaryResponse,
   createDungeonCraftingAccessState,
   createDungeonCraftingThroughputAssumptions,
   createDungeonSealDirectiveRecord,
+  createPortableAuthorityHost,
   defaultDungeonCraftingThroughputAssumptions,
   dungeonCraftingFieldPolicies,
   dungeonCraftingPrivacyScaleRollout,
   isChaosHotspotSeverity,
   isDivineAuthorityTier,
   packageDescriptor,
-  DUNGEON_CRAFTING_PRIVACY_SCALE_FEATURE_FLAG_ID,
 } from "../src/index.js";
 
 describe("@plasius/dungeon-crafting", () => {
@@ -71,6 +74,38 @@ describe("@plasius/dungeon-crafting", () => {
     expect(record.hotspotSeverity).toBe("major");
   });
 
+  it("rejects malformed seal-directive identifiers and timestamps", () => {
+    expect(() =>
+      createDungeonSealDirectiveRecord({
+        operatorSubjectId: " ",
+        hotspotId: "hotspot-1",
+        divineAuthorityTier: "seat",
+        hotspotSeverity: "major",
+        updatedAtIso: "2026-05-20T00:00:00.000Z",
+      })
+    ).toThrow("operatorSubjectId must be a non-empty string");
+
+    expect(() =>
+      createDungeonSealDirectiveRecord({
+        operatorSubjectId: "operator-sub-1",
+        hotspotId: "hotspot-1",
+        divineAuthorityTier: "seat",
+        hotspotSeverity: "major",
+        updatedAtIso: "",
+      })
+    ).toThrow("updatedAtIso must be a non-empty string");
+
+    expect(() =>
+      createDungeonSealDirectiveRecord({
+        operatorSubjectId: "operator-sub-1",
+        hotspotId: "hotspot-1",
+        divineAuthorityTier: "seat",
+        hotspotSeverity: "major",
+        updatedAtIso: "not-a-date",
+      })
+    ).toThrow("updatedAtIso must be an ISO-8601 timestamp");
+  });
+
   it("rejects unsupported authority tiers or hotspot severity", () => {
     expect(isDivineAuthorityTier("seat")).toBe(true);
     expect(isDivineAuthorityTier("invalid")).toBe(false);
@@ -87,6 +122,18 @@ describe("@plasius/dungeon-crafting", () => {
       })
     ).toThrow(
       "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+
+    expect(() =>
+      createDungeonSealDirectiveRecord({
+        operatorSubjectId: "operator-sub-1",
+        hotspotId: "hotspot-1",
+        divineAuthorityTier: "seat",
+        hotspotSeverity: "invalid" as never,
+        updatedAtIso: "2026-05-20T00:00:00.000Z",
+      })
+    ).toThrow(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
     );
   });
 
@@ -109,5 +156,57 @@ describe("@plasius/dungeon-crafting", () => {
         maxDirectiveCommitsPerMinute: 14_000,
       })
     ).toThrow("maxConcurrentSealOperations must be a positive safe integer");
+  });
+
+  it("creates portable authority hosts", () => {
+    const host = createPortableAuthorityHost({
+      hostId: "seal-authority",
+      runtime: "worker",
+      transport: "queue",
+      capabilityFlags: ["trace-linked"],
+    });
+
+    expect(host.runtime).toBe("worker");
+    expect(() => {
+      (host.capabilityFlags as string[]).push("mutate");
+    }).toThrow();
+  });
+
+  it("creates recoverable failure policies", () => {
+    const policy = createAuthorityFailurePolicy({
+      timeoutMs: 1800,
+      maxAttempts: 2,
+      recoverableHotspotSeverities: ["minor", "major"],
+      escalationTarget: "divine-seat",
+    });
+
+    expect(policy.maxAttempts).toBe(2);
+    expect(Object.isFrozen(policy)).toBe(true);
+  });
+
+  it("creates dungeon authority boundary responses", () => {
+    const response = createDungeonAuthorityBoundaryResponse({
+      responseId: "response-1",
+      divineAuthorityTier: "near-seat",
+      hotspotSeverity: "major",
+      outcome: "deferred",
+      eligible: false,
+      sourceHost: {
+        hostId: "seal-authority",
+        runtime: "worker",
+        transport: "queue",
+        capabilityFlags: ["trace-linked"],
+      },
+      failurePolicy: {
+        timeoutMs: 1800,
+        maxAttempts: 2,
+        recoverableHotspotSeverities: ["minor", "major"],
+        escalationTarget: "divine-seat",
+      },
+      observedAt: "2026-05-21T00:00:00.000Z",
+    });
+
+    expect(response.outcome).toBe("deferred");
+    expect(response.failurePolicy.escalationTarget).toBe("divine-seat");
   });
 });
