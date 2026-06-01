@@ -25,6 +25,7 @@ npm install @plasius/dungeon-crafting
 - DIS-gated access state
 - chaos-hotspot severity metadata
 - dungeon-crafting intent state
+- privacy-safe seal-directive payloads and hotspot throughput assumptions
 - portable authority-host descriptors
 - recoverable failure-policy and authority-response contracts
 
@@ -42,6 +43,9 @@ import {
   createAuthorityFailurePolicy,
   createDungeonAuthorityBoundaryResponse,
   createDungeonCraftingAccessState,
+  createDungeonSealDirectiveRecord,
+  defaultDungeonCraftingThroughputAssumptions,
+  dungeonCraftingPrivacyScaleRollout,
 } from "@plasius/dungeon-crafting";
 
 const state = createDungeonCraftingAccessState({
@@ -50,7 +54,17 @@ const state = createDungeonCraftingAccessState({
   eligible: true,
 });
 
-console.log(state.hotspotSeverity);
+const directive = createDungeonSealDirectiveRecord({
+  operatorSubjectId: "operator-sub-1",
+  hotspotId: "hotspot-1",
+  divineAuthorityTier: state.divineAuthorityTier,
+  hotspotSeverity: state.hotspotSeverity,
+  updatedAtIso: new Date().toISOString(),
+});
+
+console.log(dungeonCraftingPrivacyScaleRollout.featureFlagId);
+console.log(defaultDungeonCraftingThroughputAssumptions.maxDirectiveCommitsPerMinute);
+console.log(directive.hotspotId);
 
 const failurePolicy = createAuthorityFailurePolicy({
   timeoutMs: 1800,
@@ -77,6 +91,23 @@ const response = createDungeonAuthorityBoundaryResponse({
 
 console.log(response.outcome);
 ```
+
+## Privacy And Scale Baseline
+
+The package exports an inherited rollout descriptor for the cross-repo feature
+flag `isekai.training-progression.privacy-scale.enabled`.
+
+When that rollout is enabled, package consumers should prefer the minimal
+`DungeonSealDirectiveRecord` contract:
+
+- `operatorSubjectId` is the only player-linked identifier and is expected to
+  be pseudonymous
+- profile names, chat text, raw hotspot telemetry, and contact data are outside
+  the package contract
+- `dungeonCraftingFieldPolicies` documents the retention and sensitivity
+  expectation for every exported directive field
+- `defaultDungeonCraftingThroughputAssumptions` publishes the validated hotspot
+  evaluation and directive-commit envelope used by the package docs and tests
 
 ## Governance
 
