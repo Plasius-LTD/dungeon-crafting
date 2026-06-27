@@ -69,6 +69,26 @@ describe("@plasius/dungeon-crafting", () => {
     expect(isDomainAlignmentState("invalid")).toBe(false);
   });
 
+  it("supports additional authority and hotspot variants", () => {
+    expect(
+      createDungeonCraftingAccessState({
+        divineAuthorityTier: "follower",
+        hotspotSeverity: "catastrophic",
+        eligible: false,
+      }).hotspotSeverity
+    ).toBe("catastrophic");
+
+    const host = createPortableAuthorityHost({
+      hostId: "seal-browser",
+      runtime: "browser",
+      transport: "in-process",
+      capabilityFlags: ["sealed-fallback-ready"],
+    });
+
+    expect(host.runtime).toBe("browser");
+    expect(host.transport).toBe("in-process");
+  });
+
   it("rejects invalid dungeon-crafting access state payloads", () => {
     expect(() =>
       createDungeonCraftingAccessState({
@@ -78,6 +98,16 @@ describe("@plasius/dungeon-crafting", () => {
       })
     ).toThrow(
       "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+
+    expect(() =>
+      createDungeonCraftingAccessState({
+        divineAuthorityTier: "seat",
+        hotspotSeverity: "unknown" as never,
+        eligible: true,
+      })
+    ).toThrow(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
     );
   });
 
@@ -266,6 +296,24 @@ describe("@plasius/dungeon-crafting", () => {
         capabilityFlags: ["trace-linked"],
       })
     ).toThrow("runtime must be a supported authority host runtime");
+
+    expect(() =>
+      createPortableAuthorityHost({
+        hostId: "seal-authority",
+        runtime: "server",
+        transport: "telepathy" as never,
+        capabilityFlags: ["trace-linked"],
+      })
+    ).toThrow("transport must be a supported authority host transport");
+
+    expect(() =>
+      createPortableAuthorityHost({
+        hostId: "seal-authority",
+        runtime: "server",
+        transport: "http",
+        capabilityFlags: [" "],
+      })
+    ).toThrow("capabilityFlags entry must be a non-empty string");
   });
 
   it("creates recoverable failure policies", () => {
@@ -298,6 +346,18 @@ describe("@plasius/dungeon-crafting", () => {
     expect(handoff.requestedAuthorityTier).toBe("near-seat");
   });
 
+  it("supports sealed-fallback escalation policies", () => {
+    const policy = createAuthorityFailurePolicy({
+      timeoutMs: 2400,
+      maxAttempts: 3,
+      recoverableHotspotSeverities: ["catastrophic"],
+      escalationTarget: "sealed-fallback",
+    });
+
+    expect(policy.escalationTarget).toBe("sealed-fallback");
+    expect(policy.recoverableHotspotSeverities).toEqual(["catastrophic"]);
+  });
+
   it("rejects invalid authority failure policies", () => {
     expect(() =>
       createAuthorityFailurePolicy({
@@ -311,11 +371,29 @@ describe("@plasius/dungeon-crafting", () => {
     expect(() =>
       createAuthorityFailurePolicy({
         timeoutMs: 1800,
+        maxAttempts: 0,
+        recoverableHotspotSeverities: ["minor", "major"],
+        escalationTarget: "divine-seat",
+      })
+    ).toThrow("maxAttempts must be a positive safe integer");
+
+    expect(() =>
+      createAuthorityFailurePolicy({
+        timeoutMs: 1800,
         maxAttempts: 2,
         recoverableHotspotSeverities: ["unknown" as never],
         escalationTarget: "divine-seat",
       })
     ).toThrow("recoverableHotspotSeverities contains an unsupported value");
+
+    expect(() =>
+      createAuthorityFailurePolicy({
+        timeoutMs: 1800,
+        maxAttempts: 2,
+        recoverableHotspotSeverities: ["minor", "major"],
+        escalationTarget: "unknown" as never,
+      })
+    ).toThrow("escalationTarget must be a supported authority escalation target");
   });
 
   it("creates dungeon authority boundary responses", () => {
@@ -344,6 +422,32 @@ describe("@plasius/dungeon-crafting", () => {
     expect(response.failurePolicy.escalationTarget).toBe("divine-seat");
   });
 
+  it("creates granted authority boundary responses across alternate hosts", () => {
+    const response = createDungeonAuthorityBoundaryResponse({
+      responseId: "response-2",
+      divineAuthorityTier: "follower",
+      hotspotSeverity: "catastrophic",
+      outcome: "granted",
+      eligible: true,
+      sourceHost: {
+        hostId: "seal-server",
+        runtime: "server",
+        transport: "http",
+        capabilityFlags: ["trace-linked"],
+      },
+      failurePolicy: {
+        timeoutMs: 2400,
+        maxAttempts: 3,
+        recoverableHotspotSeverities: ["catastrophic"],
+        escalationTarget: "operator",
+      },
+      observedAt: "2026-05-22T00:00:00.000Z",
+    });
+
+    expect(response.outcome).toBe("granted");
+    expect(response.sourceHost.transport).toBe("http");
+  });
+
   it("rejects invalid dungeon authority boundary responses", () => {
     expect(() =>
       createDungeonAuthorityBoundaryResponse({
@@ -368,6 +472,56 @@ describe("@plasius/dungeon-crafting", () => {
       })
     ).toThrow(
       "outcome must be a supported dungeon-crafting authority outcome"
+    );
+
+    expect(() =>
+      createDungeonAuthorityBoundaryResponse({
+        responseId: "response-1",
+        divineAuthorityTier: "unknown" as never,
+        hotspotSeverity: "major",
+        outcome: "deferred",
+        eligible: false,
+        sourceHost: {
+          hostId: "seal-authority",
+          runtime: "worker",
+          transport: "queue",
+          capabilityFlags: ["trace-linked"],
+        },
+        failurePolicy: {
+          timeoutMs: 1800,
+          maxAttempts: 2,
+          recoverableHotspotSeverities: ["minor", "major"],
+          escalationTarget: "divine-seat",
+        },
+        observedAt: "2026-05-21T00:00:00.000Z",
+      })
+    ).toThrow(
+      "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+
+    expect(() =>
+      createDungeonAuthorityBoundaryResponse({
+        responseId: "response-1",
+        divineAuthorityTier: "near-seat",
+        hotspotSeverity: "unknown" as never,
+        outcome: "deferred",
+        eligible: false,
+        sourceHost: {
+          hostId: "seal-authority",
+          runtime: "worker",
+          transport: "queue",
+          capabilityFlags: ["trace-linked"],
+        },
+        failurePolicy: {
+          timeoutMs: 1800,
+          maxAttempts: 2,
+          recoverableHotspotSeverities: ["minor", "major"],
+          escalationTarget: "divine-seat",
+        },
+        observedAt: "2026-05-21T00:00:00.000Z",
+      })
+    ).toThrow(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
     );
 
     expect(() =>
