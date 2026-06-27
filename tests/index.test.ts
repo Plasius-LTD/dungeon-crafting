@@ -69,6 +69,18 @@ describe("@plasius/dungeon-crafting", () => {
     expect(isDomainAlignmentState("invalid")).toBe(false);
   });
 
+  it("rejects invalid dungeon-crafting access state payloads", () => {
+    expect(() =>
+      createDungeonCraftingAccessState({
+        divineAuthorityTier: "unknown" as never,
+        hotspotSeverity: "major",
+        eligible: true,
+      })
+    ).toThrow(
+      "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+  });
+
   it("exports the privacy and scale rollout metadata", () => {
     expect(dungeonCraftingPrivacyScaleRollout.featureFlagId).toBe(
       DUNGEON_CRAFTING_PRIVACY_SCALE_FEATURE_FLAG_ID
@@ -236,6 +248,26 @@ describe("@plasius/dungeon-crafting", () => {
     }).toThrow();
   });
 
+  it("rejects invalid portable authority hosts", () => {
+    expect(() =>
+      createPortableAuthorityHost({
+        hostId: "",
+        runtime: "worker",
+        transport: "queue",
+        capabilityFlags: ["trace-linked"],
+      })
+    ).toThrow("hostId must be a non-empty string");
+
+    expect(() =>
+      createPortableAuthorityHost({
+        hostId: "seal-authority",
+        runtime: "desktop" as never,
+        transport: "queue",
+        capabilityFlags: ["trace-linked"],
+      })
+    ).toThrow("runtime must be a supported authority host runtime");
+  });
+
   it("creates recoverable failure policies", () => {
     const policy = createAuthorityFailurePolicy({
       timeoutMs: 1800,
@@ -266,6 +298,26 @@ describe("@plasius/dungeon-crafting", () => {
     expect(handoff.requestedAuthorityTier).toBe("near-seat");
   });
 
+  it("rejects invalid authority failure policies", () => {
+    expect(() =>
+      createAuthorityFailurePolicy({
+        timeoutMs: 0,
+        maxAttempts: 2,
+        recoverableHotspotSeverities: ["minor", "major"],
+        escalationTarget: "divine-seat",
+      })
+    ).toThrow("timeoutMs must be a positive safe integer");
+
+    expect(() =>
+      createAuthorityFailurePolicy({
+        timeoutMs: 1800,
+        maxAttempts: 2,
+        recoverableHotspotSeverities: ["unknown" as never],
+        escalationTarget: "divine-seat",
+      })
+    ).toThrow("recoverableHotspotSeverities contains an unsupported value");
+  });
+
   it("creates dungeon authority boundary responses", () => {
     const response = createDungeonAuthorityBoundaryResponse({
       responseId: "response-1",
@@ -290,5 +342,55 @@ describe("@plasius/dungeon-crafting", () => {
 
     expect(response.outcome).toBe("deferred");
     expect(response.failurePolicy.escalationTarget).toBe("divine-seat");
+  });
+
+  it("rejects invalid dungeon authority boundary responses", () => {
+    expect(() =>
+      createDungeonAuthorityBoundaryResponse({
+        responseId: "response-1",
+        divineAuthorityTier: "near-seat",
+        hotspotSeverity: "major",
+        outcome: "unknown" as never,
+        eligible: false,
+        sourceHost: {
+          hostId: "seal-authority",
+          runtime: "worker",
+          transport: "queue",
+          capabilityFlags: ["trace-linked"],
+        },
+        failurePolicy: {
+          timeoutMs: 1800,
+          maxAttempts: 2,
+          recoverableHotspotSeverities: ["minor", "major"],
+          escalationTarget: "divine-seat",
+        },
+        observedAt: "2026-05-21T00:00:00.000Z",
+      })
+    ).toThrow(
+      "outcome must be a supported dungeon-crafting authority outcome"
+    );
+
+    expect(() =>
+      createDungeonAuthorityBoundaryResponse({
+        responseId: "response-1",
+        divineAuthorityTier: "near-seat",
+        hotspotSeverity: "major",
+        outcome: "deferred",
+        eligible: false,
+        sourceHost: {
+          hostId: "seal-authority",
+          runtime: "worker",
+          transport: "queue",
+          capabilityFlags: ["trace-linked"],
+        },
+        failurePolicy: {
+          timeoutMs: 1800,
+          maxAttempts: 2,
+          recoverableHotspotSeverities: ["minor", "major"],
+          escalationTarget: "divine-seat",
+        },
+        observedAt: "2026-02-31T00:00:00.000Z",
+      })
+    ).toThrow("updatedAtIso must be an ISO-8601 timestamp");
   });
 });

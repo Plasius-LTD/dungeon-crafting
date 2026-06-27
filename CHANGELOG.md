@@ -26,7 +26,7 @@ All notable changes to this project will be documented in this file.
   - document how Player System guidance yields to dungeon-crafting authority and how the same handoff surface supports future arena, event, and regional intervention flows
 
 - **Fixed**
-  - (placeholder)
+  - Reject malformed authority-host, failure-policy, and boundary-response payloads before freezing dungeon-crafting contracts.
 
 - **Security**
   - (placeholder)

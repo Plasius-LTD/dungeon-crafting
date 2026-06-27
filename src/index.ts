@@ -246,6 +246,18 @@ function freezeReadonlyArray<T>(items: readonly T[]): readonly T[] {
 export function createDungeonCraftingAccessState(
   input: DungeonCraftingAccessState
 ): DungeonCraftingAccessState {
+  if (!isDivineAuthorityTier(input.divineAuthorityTier)) {
+    throw new Error(
+      "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+  }
+
+  if (!isChaosHotspotSeverity(input.hotspotSeverity)) {
+    throw new Error(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
+    );
+  }
+
   return Object.freeze({ ...input });
 }
 
@@ -288,12 +300,68 @@ function assertPositiveSafeInteger(value: number, label: string): void {
 }
 
 const iso8601DateRegex =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function assertValidUpdatedAtIso(value: string): void {
-  if (!iso8601DateRegex.test(value) || Number.isNaN(Date.parse(value))) {
+  const match = iso8601DateRegex.exec(value);
+
+  if (!match || Number.isNaN(Date.parse(value))) {
     throw new Error("updatedAtIso must be an ISO-8601 timestamp");
   }
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match;
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  const second = Number(secondRaw);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  if (
+    month < 1
+    || month > 12
+    || day < 1
+    || day > daysInMonth
+    || hour > 23
+    || minute > 59
+    || second > 59
+  ) {
+    throw new Error("updatedAtIso must be an ISO-8601 timestamp");
+  }
+}
+
+function isAuthorityHostRuntime(value: string): value is AuthorityHostRuntime {
+  return value === "browser" || value === "server" || value === "worker";
+}
+
+function isAuthorityHostTransport(
+  value: string
+): value is AuthorityHostTransport {
+  return value === "in-process" || value === "http" || value === "queue";
+}
+
+function isDungeonAuthorityOutcome(
+  value: string
+): value is DungeonAuthorityOutcome {
+  return value === "granted" || value === "deferred" || value === "rejected";
+}
+
+function isEscalationTarget(
+  value: string
+): value is AuthorityFailurePolicy["escalationTarget"] {
+  return value === "operator" || value === "divine-seat" || value === "sealed-fallback";
+}
+
+function assertNonEmptyStringArray(
+  values: readonly string[],
+  label: string
+): readonly string[] {
+  for (const value of values) {
+    assertNonEmptyString(value, `${label} entry`);
+  }
+
+  return freezeReadonlyArray(values);
 }
 
 export function createDungeonSealDirectiveRecord(
@@ -341,19 +409,47 @@ export function createDungeonCraftingThroughputAssumptions(
 export function createPortableAuthorityHost(
   input: PortableAuthorityHost
 ): PortableAuthorityHost {
+  assertNonEmptyString(input.hostId, "hostId");
+
+  if (!isAuthorityHostRuntime(input.runtime)) {
+    throw new Error("runtime must be a supported authority host runtime");
+  }
+
+  if (!isAuthorityHostTransport(input.transport)) {
+    throw new Error("transport must be a supported authority host transport");
+  }
+
   return Object.freeze({
     ...input,
-    capabilityFlags: freezeReadonlyArray(input.capabilityFlags),
+    capabilityFlags: assertNonEmptyStringArray(
+      input.capabilityFlags,
+      "capabilityFlags"
+    ),
   });
 }
 
 export function createAuthorityFailurePolicy(
   input: AuthorityFailurePolicy
 ): AuthorityFailurePolicy {
+  assertPositiveSafeInteger(input.timeoutMs, "timeoutMs");
+  assertPositiveSafeInteger(input.maxAttempts, "maxAttempts");
+
+  if (!isEscalationTarget(input.escalationTarget)) {
+    throw new Error("escalationTarget must be a supported authority escalation target");
+  }
+
   return Object.freeze({
     ...input,
-    recoverableHotspotSeverities: freezeReadonlyArray(
-      input.recoverableHotspotSeverities
+    recoverableHotspotSeverities: input.recoverableHotspotSeverities.map(
+      (severity) => {
+        if (!isChaosHotspotSeverity(severity)) {
+          throw new Error(
+            "recoverableHotspotSeverities contains an unsupported value"
+          );
+        }
+
+        return severity;
+      }
     ),
   });
 }
@@ -388,6 +484,28 @@ export function createDungeonGuidanceHandoff(
 export function createDungeonAuthorityBoundaryResponse(
   input: DungeonAuthorityBoundaryResponse
 ): DungeonAuthorityBoundaryResponse {
+  assertNonEmptyString(input.responseId, "responseId");
+  assertNonEmptyString(input.observedAt, "observedAt");
+  assertValidUpdatedAtIso(input.observedAt);
+
+  if (!isDivineAuthorityTier(input.divineAuthorityTier)) {
+    throw new Error(
+      "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+  }
+
+  if (!isChaosHotspotSeverity(input.hotspotSeverity)) {
+    throw new Error(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
+    );
+  }
+
+  if (!isDungeonAuthorityOutcome(input.outcome)) {
+    throw new Error(
+      "outcome must be a supported dungeon-crafting authority outcome"
+    );
+  }
+
   return Object.freeze({
     ...input,
     sourceHost: createPortableAuthorityHost(input.sourceHost),
