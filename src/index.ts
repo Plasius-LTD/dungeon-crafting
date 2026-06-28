@@ -438,18 +438,28 @@ export function createAuthorityFailurePolicy(
     throw new Error("escalationTarget must be a supported authority escalation target");
   }
 
+  if (!Array.isArray(input.recoverableHotspotSeverities)) {
+    throw new Error(
+      "recoverableHotspotSeverities must be an array of supported hotspot severities"
+    );
+  }
+
+  const recoverableHotspotSeverities = input.recoverableHotspotSeverities.map(
+    (severity) => {
+      if (!isChaosHotspotSeverity(severity)) {
+        throw new Error(
+          "recoverableHotspotSeverities contains an unsupported value"
+        );
+      }
+
+      return severity;
+    }
+  );
+
   return Object.freeze({
     ...input,
-    recoverableHotspotSeverities: input.recoverableHotspotSeverities.map(
-      (severity) => {
-        if (!isChaosHotspotSeverity(severity)) {
-          throw new Error(
-            "recoverableHotspotSeverities contains an unsupported value"
-          );
-        }
-
-        return severity;
-      }
+    recoverableHotspotSeverities: freezeReadonlyArray(
+      recoverableHotspotSeverities
     ),
   });
 }

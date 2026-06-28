@@ -326,6 +326,9 @@ describe("@plasius/dungeon-crafting", () => {
 
     expect(policy.maxAttempts).toBe(2);
     expect(Object.isFrozen(policy)).toBe(true);
+    expect(() => {
+      (policy.recoverableHotspotSeverities as string[]).push("critical");
+    }).toThrow();
   });
 
   it("creates Player System guidance handoffs without giving it execution authority", () => {
@@ -385,6 +388,17 @@ describe("@plasius/dungeon-crafting", () => {
         escalationTarget: "divine-seat",
       })
     ).toThrow("recoverableHotspotSeverities contains an unsupported value");
+
+    expect(() =>
+      createAuthorityFailurePolicy({
+        timeoutMs: 1800,
+        maxAttempts: 2,
+        recoverableHotspotSeverities: "major" as never,
+        escalationTarget: "divine-seat",
+      })
+    ).toThrow(
+      "recoverableHotspotSeverities must be an array of supported hotspot severities"
+    );
 
     expect(() =>
       createAuthorityFailurePolicy({
