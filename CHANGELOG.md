@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 - **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.2.0] - 2026-06-29
+
+- **Added**
   - export explicit dungeon authority boundary, divine/domain prerequisite, and Player System guidance handoff contracts for `@plasius/dungeon-crafting`
 
 - **Changed**
@@ -38,3 +52,4 @@ All notable changes to this project will be documented in this file.
 
 [0.1.3]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.1.3
 [0.1.4]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.1.4
+[0.2.0]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.2.0
