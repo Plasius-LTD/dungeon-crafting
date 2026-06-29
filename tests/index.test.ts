@@ -2,15 +2,19 @@ import {
   DUNGEON_CRAFTING_FEATURE_FLAG_ID,
   DUNGEON_CRAFTING_PRIVACY_SCALE_FEATURE_FLAG_ID,
   createAuthorityFailurePolicy,
+  createDungeonAuthorityPrerequisites,
   createDungeonAuthorityBoundaryResponse,
   createDungeonCraftingAccessState,
   createDungeonCraftingThroughputAssumptions,
+  createDungeonGuidanceHandoff,
   createDungeonSealDirectiveRecord,
   createPortableAuthorityHost,
   defaultDungeonCraftingThroughputAssumptions,
+  dungeonCraftingAuthorityBoundary,
   dungeonCraftingFieldPolicies,
   dungeonCraftingPrivacyScaleRollout,
   isChaosHotspotSeverity,
+  isDomainAlignmentState,
   isDivineAuthorityTier,
   packageDescriptor,
 } from "../src/index.js";
@@ -21,6 +25,25 @@ describe("@plasius/dungeon-crafting", () => {
     expect(packageDescriptor.featureFlagId).toBe(DUNGEON_CRAFTING_FEATURE_FLAG_ID);
   });
 
+  it("exports the authority boundary and supported guidance sources", () => {
+    expect(dungeonCraftingAuthorityBoundary.authorityOwner).toBe(
+      "dungeon-crafting"
+    );
+    expect(dungeonCraftingAuthorityBoundary.entryGate).toBe("dis-verified");
+    expect(dungeonCraftingAuthorityBoundary.guidanceSources).toContain(
+      "player-system"
+    );
+    expect(dungeonCraftingAuthorityBoundary.guidanceSources).toContain(
+      "arena-orchestrator"
+    );
+    expect(dungeonCraftingAuthorityBoundary.guidanceSources).toContain(
+      "event-orchestrator"
+    );
+    expect(dungeonCraftingAuthorityBoundary.guidanceSources).toContain(
+      "regional-governor"
+    );
+  });
+
   it("creates dungeon-crafting access state", () => {
     const state = createDungeonCraftingAccessState({
       divineAuthorityTier: "seat",
@@ -29,6 +52,21 @@ describe("@plasius/dungeon-crafting", () => {
     });
 
     expect(state.eligible).toBe(true);
+  });
+
+  it("creates explicit DIS, divine, and domain prerequisites", () => {
+    const prerequisites = createDungeonAuthorityPrerequisites({
+      disVerified: true,
+      divineAuthorityTier: "seat",
+      domainId: "domain.northern-rift",
+      domainAlignment: "aligned",
+      sealClearance: "seal-authority",
+      hotspotSeverity: "major",
+    });
+
+    expect(prerequisites.domainAlignment).toBe("aligned");
+    expect(isDomainAlignmentState("sealed")).toBe(true);
+    expect(isDomainAlignmentState("invalid")).toBe(false);
   });
 
   it("exports the privacy and scale rollout metadata", () => {
@@ -104,6 +142,32 @@ describe("@plasius/dungeon-crafting", () => {
         updatedAtIso: "not-a-date",
       })
     ).toThrow("updatedAtIso must be an ISO-8601 timestamp");
+  });
+
+  it("rejects malformed dungeon prerequisites", () => {
+    expect(() =>
+      createDungeonAuthorityPrerequisites({
+        disVerified: true,
+        divineAuthorityTier: "seat",
+        domainId: " ",
+        domainAlignment: "aligned",
+        sealClearance: "seal-authority",
+        hotspotSeverity: "major",
+      })
+    ).toThrow("domainId must be a non-empty string");
+
+    expect(() =>
+      createDungeonAuthorityPrerequisites({
+        disVerified: true,
+        divineAuthorityTier: "seat",
+        domainId: "domain.northern-rift",
+        domainAlignment: "invalid" as never,
+        sealClearance: "seal-authority",
+        hotspotSeverity: "major",
+      })
+    ).toThrow(
+      "domainAlignment must be a supported dungeon-crafting domain alignment state"
+    );
   });
 
   it("rejects unsupported authority tiers or hotspot severity", () => {
@@ -182,6 +246,24 @@ describe("@plasius/dungeon-crafting", () => {
 
     expect(policy.maxAttempts).toBe(2);
     expect(Object.isFrozen(policy)).toBe(true);
+  });
+
+  it("creates Player System guidance handoffs without giving it execution authority", () => {
+    const handoff = createDungeonGuidanceHandoff({
+      authorityOwner: dungeonCraftingAuthorityBoundary.authorityOwner,
+      featureFlagId: dungeonCraftingAuthorityBoundary.featureFlagId,
+      guidanceSource: "player-system",
+      domainId: "domain.northern-rift",
+      domainAlignment: "aligned",
+      readiness: "eligible",
+      hotspotSeverity: "major",
+      requestedAuthorityTier: "near-seat",
+      handoffSummary:
+        "Player System guidance has confirmed DIS and domain prerequisites and is yielding authority to dungeon-crafting.",
+    });
+
+    expect(handoff.guidanceSource).toBe("player-system");
+    expect(handoff.requestedAuthorityTier).toBe("near-seat");
   });
 
   it("creates dungeon authority boundary responses", () => {
