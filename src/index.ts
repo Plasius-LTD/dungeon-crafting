@@ -12,9 +12,23 @@ export interface RolloutDescriptor {
   readonly summary: string;
 }
 
+export type DungeonAuthorityOwner = "dungeon-crafting";
 export type DivineAuthorityTier = "follower" | "near-seat" | "seat";
-
 export type ChaosHotspotSeverity = "minor" | "major" | "catastrophic";
+export type DomainAlignmentState = "aligned" | "contested" | "sealed";
+export type ChaosSealClearance =
+  | "hotspot-watch"
+  | "seal-authority"
+  | "seat-override";
+export type DungeonGuidanceSource =
+  | "player-system"
+  | "arena-orchestrator"
+  | "event-orchestrator"
+  | "regional-governor";
+export type DungeonHandoffReadiness =
+  | "eligible"
+  | "needs-domain-clearance"
+  | "blocked";
 export type DungeonCraftingFieldSensitivity = "pseudonymous" | "internal";
 export type DungeonCraftingFieldRetention =
   | "authoritative-sealing"
@@ -26,10 +40,45 @@ export type AuthorityHostRuntime = "browser" | "server" | "worker";
 
 export type AuthorityHostTransport = "in-process" | "http" | "queue";
 
+export interface DungeonAuthorityBoundary {
+  readonly authorityOwner: DungeonAuthorityOwner;
+  readonly featureFlagId: string;
+  readonly entryGate: "dis-verified";
+  readonly guidanceSources: readonly DungeonGuidanceSource[];
+  readonly prerequisiteKinds: readonly [
+    "divine-authority",
+    "domain-alignment",
+    "chaos-hotspot-sealing",
+  ];
+  readonly validationAuthority: DungeonAuthorityOwner;
+  readonly executionAuthority: DungeonAuthorityOwner;
+}
+
 export interface DungeonCraftingAccessState {
   readonly divineAuthorityTier: DivineAuthorityTier;
   readonly hotspotSeverity: ChaosHotspotSeverity;
   readonly eligible: boolean;
+}
+
+export interface DungeonAuthorityPrerequisites {
+  readonly disVerified: boolean;
+  readonly divineAuthorityTier: DivineAuthorityTier;
+  readonly domainId: string;
+  readonly domainAlignment: DomainAlignmentState;
+  readonly sealClearance: ChaosSealClearance;
+  readonly hotspotSeverity: ChaosHotspotSeverity;
+}
+
+export interface DungeonGuidanceHandoff {
+  readonly authorityOwner: DungeonAuthorityOwner;
+  readonly featureFlagId: string;
+  readonly guidanceSource: DungeonGuidanceSource;
+  readonly domainId: string;
+  readonly domainAlignment: DomainAlignmentState;
+  readonly readiness: DungeonHandoffReadiness;
+  readonly hotspotSeverity: ChaosHotspotSeverity;
+  readonly requestedAuthorityTier: DivineAuthorityTier;
+  readonly handoffSummary: string;
 }
 
 export interface DungeonSealDirectiveRecord {
@@ -81,6 +130,12 @@ export interface DungeonAuthorityBoundaryResponse {
 export const DUNGEON_CRAFTING_PACKAGE = "@plasius/dungeon-crafting";
 export const DUNGEON_CRAFTING_ENV_PREFIX = "DUNGEON_CRAFTING";
 export const DUNGEON_CRAFTING_FEATURE_FLAG_ID = "isekai.dungeon-crafting.enabled";
+const DUNGEON_GUIDANCE_SOURCES = Object.freeze([
+  "player-system",
+  "arena-orchestrator",
+  "event-orchestrator",
+  "regional-governor",
+] as const);
 export const DUNGEON_CRAFTING_PRIVACY_SCALE_FEATURE_FLAG_ID =
   "isekai.training-progression.privacy-scale.enabled";
 export const DUNGEON_CRAFTING_PRIVACY_SCALE_ENV_OVERRIDE =
@@ -93,6 +148,21 @@ export const packageDescriptor: PackageDescriptor = Object.freeze({
   summary:
     "DIS-gated dungeon-crafting and chaos-sealing authority contracts for Plasius.",
 });
+
+export const dungeonCraftingAuthorityBoundary: DungeonAuthorityBoundary =
+  Object.freeze({
+    authorityOwner: "dungeon-crafting",
+    featureFlagId: DUNGEON_CRAFTING_FEATURE_FLAG_ID,
+    entryGate: "dis-verified",
+    guidanceSources: DUNGEON_GUIDANCE_SOURCES,
+    prerequisiteKinds: Object.freeze([
+      "divine-authority",
+      "domain-alignment",
+      "chaos-hotspot-sealing",
+    ] as const),
+    validationAuthority: "dungeon-crafting",
+    executionAuthority: "dungeon-crafting",
+  });
 
 export const dungeonCraftingPrivacyScaleRollout: RolloutDescriptor =
   Object.freeze({
@@ -163,6 +233,12 @@ export function isChaosHotspotSeverity(
   return value === "minor" || value === "major" || value === "catastrophic";
 }
 
+export function isDomainAlignmentState(
+  value: string
+): value is DomainAlignmentState {
+  return value === "aligned" || value === "contested" || value === "sealed";
+}
+
 function freezeReadonlyArray<T>(items: readonly T[]): readonly T[] {
   return Object.freeze([...items]);
 }
@@ -170,6 +246,32 @@ function freezeReadonlyArray<T>(items: readonly T[]): readonly T[] {
 export function createDungeonCraftingAccessState(
   input: DungeonCraftingAccessState
 ): DungeonCraftingAccessState {
+  return Object.freeze({ ...input });
+}
+
+export function createDungeonAuthorityPrerequisites(
+  input: DungeonAuthorityPrerequisites
+): DungeonAuthorityPrerequisites {
+  assertNonEmptyString(input.domainId, "domainId");
+
+  if (!isDivineAuthorityTier(input.divineAuthorityTier)) {
+    throw new Error(
+      "divineAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+  }
+
+  if (!isDomainAlignmentState(input.domainAlignment)) {
+    throw new Error(
+      "domainAlignment must be a supported dungeon-crafting domain alignment state"
+    );
+  }
+
+  if (!isChaosHotspotSeverity(input.hotspotSeverity)) {
+    throw new Error(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
+    );
+  }
+
   return Object.freeze({ ...input });
 }
 
@@ -254,6 +356,33 @@ export function createAuthorityFailurePolicy(
       input.recoverableHotspotSeverities
     ),
   });
+}
+
+export function createDungeonGuidanceHandoff(
+  input: DungeonGuidanceHandoff
+): DungeonGuidanceHandoff {
+  assertNonEmptyString(input.domainId, "domainId");
+  assertNonEmptyString(input.handoffSummary, "handoffSummary");
+
+  if (!isDomainAlignmentState(input.domainAlignment)) {
+    throw new Error(
+      "domainAlignment must be a supported dungeon-crafting domain alignment state"
+    );
+  }
+
+  if (!isDivineAuthorityTier(input.requestedAuthorityTier)) {
+    throw new Error(
+      "requestedAuthorityTier must be a supported dungeon-crafting authority tier"
+    );
+  }
+
+  if (!isChaosHotspotSeverity(input.hotspotSeverity)) {
+    throw new Error(
+      "hotspotSeverity must be a supported dungeon-crafting hotspot severity"
+    );
+  }
+
+  return Object.freeze({ ...input });
 }
 
 export function createDungeonAuthorityBoundaryResponse(

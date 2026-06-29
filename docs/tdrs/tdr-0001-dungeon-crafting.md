@@ -2,8 +2,8 @@
 
 ## Summary
 
-Bootstrap the dungeon-crafting package with dual-module outputs, baseline CI, access-state contracts, docs, demo, and tests.
+Bootstrap the dungeon-crafting package with dual-module outputs, baseline CI, access-state contracts, explicit authority and handoff metadata, docs, demo, and tests.
 
 ## Direction
 
-The bootstrap should stop at authority-side access and chaos-sealing boundary contracts.
+The bootstrap should stop at authority-side access, prerequisite, handoff, and chaos-sealing boundary contracts.

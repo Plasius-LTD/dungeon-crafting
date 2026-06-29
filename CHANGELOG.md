@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 - **Added**
-  - (placeholder)
+  - export explicit dungeon authority boundary, divine/domain prerequisite, and Player System guidance handoff contracts for `@plasius/dungeon-crafting`
 
 - **Changed**
-  - (placeholder)
+  - document how Player System guidance yields to dungeon-crafting authority and how the same handoff surface supports future arena, event, and regional intervention flows
 
 - **Fixed**
   - (placeholder)
