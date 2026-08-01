@@ -10,6 +10,8 @@
 
 DIS-gated dungeon-crafting and chaos-sealing authority contracts for Plasius.
 
+Factory helpers reject blank identifiers, unsupported enums, invalid timestamps, and malformed authority metadata at runtime before freezing public contract payloads.
+
 Apache-2.0. ESM + CJS builds. TypeScript types included.
 
 ## Installation
