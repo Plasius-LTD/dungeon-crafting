@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
   - (placeholder)
 
 - **Security**
+  - Pinned patched transitive npm dependencies to clear the current audit baseline.
   - (placeholder)
 
 ## [0.2.1] - 2026-08-01
