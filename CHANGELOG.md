@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 
 - **Changed**
   - Bound npm publication to the exact prepared `main` commit after successful push-triggered CI.
+  - Enabled exact-head manual CI dispatch for reviewed release validation.
 
 - **Fixed**
   - (placeholder)
