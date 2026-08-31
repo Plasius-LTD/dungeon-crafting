@@ -8,12 +8,16 @@ All notable changes to this project will be documented in this file.
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Bound npm publication to the exact prepared `main` commit after successful push-triggered CI.
+  - Enabled exact-head manual CI dispatch for reviewed release validation.
 
 - **Fixed**
+  - Disabled package-manager caching on self-hosted CI to prevent cache-save
+    cleanup stalls from blocking the validation queue.
   - (placeholder)
 
 - **Security**
+  - Removed the npm write-token path, added a fail-closed Node 24/npm 11.5.1-or-newer OIDC guard, and denied fork PR code access to self-hosted CI.
   - Pinned patched transitive npm dependencies to clear the current audit baseline.
   - (placeholder)
 
