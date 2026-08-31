@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
 - **Security**
   - Removed the npm write-token path, added a fail-closed Node 24/npm 11.5.1-or-newer OIDC guard, and denied fork PR code access to self-hosted CI.
+  - Pinned patched transitive npm dependencies to clear the current audit baseline.
+  - (placeholder)
 
 ## [0.2.1] - 2026-08-01
 
