@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
   - Enabled exact-head manual CI dispatch for reviewed release validation.
 
 - **Fixed**
+  - Disabled package-manager caching on self-hosted CI to prevent cache-save
+    cleanup stalls from blocking the validation queue.
   - (placeholder)
 
 - **Security**
