@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.2.4] - 2026-10-11
+
 - Refresh npm dependency lockfile to current supported stable versions (weekly maintenance, 2026-10-11).
 
 - **Added**
@@ -110,3 +124,4 @@ All notable changes to this project will be documented in this file.
 [0.2.1]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.2.1
 [0.2.2]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.2.2
 [0.2.3]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.2.3
+[0.2.4]: https://github.com/Plasius-LTD/dungeon-crafting/releases/tag/v0.2.4
