@@ -1,6 +1,6 @@
 {
   "name": "@plasius/dungeon-crafting",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "DIS-gated dungeon-crafting and chaos-sealing authority contracts for Plasius",
   "type": "module",
   "sideEffects": false,
